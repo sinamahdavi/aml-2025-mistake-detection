@@ -190,7 +190,7 @@ def print_results(overall_metrics, per_error_type_metrics, config):
     print(f"ERROR TYPE ANALYSIS - {config.variant} ({config.backbone}) - {config.split} split")
     print("="*80)
     
-    print("\n📊 OVERALL METRICS:")
+    print("\nOVERALL METRICS:")
     print("-"*40)
     print(f"  Accuracy:  {overall_metrics['accuracy']:.2f}%")
     print(f"  Precision: {overall_metrics['precision']:.2f}%")
@@ -198,7 +198,7 @@ def print_results(overall_metrics, per_error_type_metrics, config):
     print(f"  F1 Score:  {overall_metrics['f1']:.2f}%")
     print(f"  AUC:       {overall_metrics['auc']:.2f}%")
     
-    print("\n📋 PER ERROR TYPE METRICS:")
+    print("\nPER ERROR TYPE METRICS:")
     print("-"*80)
     print(f"{'Error Type':<25} {'Count':>8} {'Acc':>8} {'Prec':>8} {'Recall':>8} {'F1':>8} {'AUC':>8}")
     print("-"*80)
