@@ -91,6 +91,7 @@ def main():
     print(f"Split: {conf.split}")
     print(f"Learning Rate: {conf.lr}")
     print(f"Epochs: {conf.num_epochs}")
+    print(f"Device: {conf.device}")
     print("=" * 60)
 
     if conf.enable_wandb:
