@@ -134,8 +134,12 @@ def train_epoch(model, device, train_loader, optimizer, epoch, criterion):
     num_batches = len(train_loader)
     train_losses = []
 
-    for batch_idx, (data, target) in enumerate(train_loader):
+    for batch_idx, batch in enumerate(train_loader):
+        if batch is None:
+            continue
+        data, target = batch
         data, target = data.to(device), target.to(device)
+
 
         assert not torch.isnan(data).any(), "Data contains NaN values"
 
@@ -190,7 +194,10 @@ def train_model_base(train_loader, val_loader, config, test_loader=None):
             num_batches = len(train_loader)
             train_losses = []
 
-            for batch_idx, (data, target) in enumerate(train_loader):
+            for batch_idx, batch in enumerate(train_loader):
+                if batch is None:
+                    continue
+                data, target = batch
                 data, target = data.to(device), target.to(device)
 
                 assert not torch.isnan(data).any(), "Data contains NaN values"
