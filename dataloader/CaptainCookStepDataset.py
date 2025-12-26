@@ -6,6 +6,7 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 from constants import Constants as const
+from torch.nn.utils.rnn import pad_sequence
 
 
 class CaptainCookStepDataset(Dataset):
@@ -277,3 +278,28 @@ def collate_fn(batch):
     step_labels = torch.cat(step_labels, dim=0)
 
     return step_features, step_labels
+
+def step_sequence_collate_fn(batch):
+    """
+    Used ONLY for Step 2(b) LSTM baseline.
+    Keeps step-level temporal sequences.
+    """
+    step_features, step_labels = zip(*batch)
+
+    # step_features: list of (T_i, D)
+    step_features = [
+        torch.tensor(f, dtype=torch.float32)
+        for f in step_features
+    ]
+
+    lengths = torch.tensor([f.shape[0] for f in step_features])
+
+    step_features = pad_sequence(
+        step_features,
+        batch_first=True
+    )  # (B, T_max, D)
+
+    # take one label per step (all frames have same label)
+    step_labels = torch.stack([lbl[0] for lbl in step_labels])
+
+    return step_features, lengths, step_labels
