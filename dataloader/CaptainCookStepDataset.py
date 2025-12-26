@@ -277,3 +277,42 @@ def collate_fn(batch):
     step_labels = torch.cat(step_labels, dim=0)
 
     return step_features, step_labels
+
+
+def step_sequence_collate_fn(batch):
+    """
+    Collate function for LSTM that preserves sequence structure.
+    Handles variable-length sequences with padding.
+    Returns step-level predictions (one per step, not per sub-step).
+    
+    Args:
+        batch: List of tuples (step_features, step_labels)
+            - step_features: (seq_len, feature_dim) tensor
+            - step_labels: (seq_len, 1) tensor (all labels in a step are the same)
+    
+    Returns:
+        padded_features: (batch_size, max_seq_len, feature_dim) - padded sequences
+        step_level_labels: (batch_size, 1) - one label per step
+    """
+    step_features, step_labels = zip(*batch)
+    
+    # Get sequence lengths
+    seq_lengths = [feat.shape[0] for feat in step_features]
+    max_len = max(seq_lengths) if seq_lengths else 1
+    feature_dim = step_features[0].shape[1]
+    batch_size = len(step_features)
+    
+    # Pad sequences to same length
+    padded_features = torch.zeros(batch_size, max_len, feature_dim)
+    
+    # For labels: take first label per step (all sub-steps in a step have same label)
+    # LSTM outputs one prediction per step, so target should be (batch_size, 1)
+    step_level_labels = torch.zeros(batch_size, 1)
+    
+    for i, (feat, label) in enumerate(zip(step_features, step_labels)):
+        seq_len = feat.shape[0]
+        padded_features[i, :seq_len, :] = feat
+        # Take first label (all labels in a step are the same)
+        step_level_labels[i, 0] = label[0, 0]
+    
+    return padded_features, step_level_labels

@@ -50,6 +50,16 @@ def fetch_model(config):
     elif config.variant == const.TRANSFORMER_VARIANT:
         if config.backbone in [const.OMNIVORE, const.RESNET3D, const.X3D, const.SLOWFAST, const.IMAGEBIND]:
             model = ErFormer(config)
+    elif config.variant == const.LSTM_VARIANT:
+        if config.backbone in [const.OMNIVORE, const.RESNET3D, const.X3D, const.SLOWFAST, const.IMAGEBIND]:
+            from core.models.lstm_model import LSTMErrorRecognition
+            model = LSTMErrorRecognition(config, hidden_size=256, num_layers=2, 
+                                         dropout=0.3, bidirectional=True)
+    elif config.variant == const.GRU_VARIANT:
+        if config.backbone in [const.OMNIVORE, const.RESNET3D, const.X3D, const.SLOWFAST, const.IMAGEBIND]:
+            from core.models.lstm_model import GRUErrorRecognition
+            model = GRUErrorRecognition(config, hidden_size=256, num_layers=2,
+                                        dropout=0.3, bidirectional=True)
 
     assert model is not None, f"Model not found for variant: {config.variant} and backbone: {config.backbone}"
     model.to(config.device)
@@ -404,12 +414,20 @@ def test_er_model(model, test_loader, criterion, device, phase, step_normalizati
         #     step_output = neg_output
         step_output = np.array(step_output)
         # # Scale the output to [0, 1]
-        if start - end > 1:
-            if sub_step_normalization:
-                prob_range = np.max(step_output) - np.min(step_output)
-                step_output = (step_output - np.min(step_output)) / prob_range
-
-        mean_step_output = np.mean(step_output)
+        # For LSTM/GRU: predictions are already step-level, so if batch_size=1, use directly
+        # For MLP/Transformer: aggregate sub-step predictions into step prediction
+        if len(step_output) == 1:
+            # Single step prediction (LSTM case with batch_size=1 per step, or already aggregated)
+            mean_step_output = step_output[0]
+        else:
+            # Multiple predictions to aggregate (sub-steps or multiple steps in batch)
+            if end - start > 1:  # Fixed: was start - end (always negative)
+                if sub_step_normalization:
+                    prob_range = np.max(step_output) - np.min(step_output)
+                    if prob_range > 0:
+                        step_output = (step_output - np.min(step_output)) / prob_range
+            mean_step_output = np.mean(step_output)
+        
         step_target = 1 if np.mean(step_target) > 0.95 else 0
 
         all_step_outputs.append(mean_step_output)
