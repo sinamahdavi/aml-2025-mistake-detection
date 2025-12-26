@@ -16,7 +16,6 @@ from tqdm import tqdm
 
 from core.models.blocks import fetch_input_dim, MLP
 from core.models.er_former import ErFormer
-from core.models.lstm_model import LSTMSequenceErrorRecognition, GRUErrorRecognition
 from dataloader.CaptainCookStepDataset import collate_fn, CaptainCookStepDataset
 from dataloader.CaptainCookSubStepDataset import CaptainCookSubStepDataset
 
@@ -51,12 +50,6 @@ def fetch_model(config):
     elif config.variant == const.TRANSFORMER_VARIANT:
         if config.backbone in [const.OMNIVORE, const.RESNET3D, const.X3D, const.SLOWFAST, const.IMAGEBIND]:
             model = ErFormer(config)
-    elif config.variant == const.LSTM_VARIANT:
-        if config.backbone in [const.OMNIVORE, const.RESNET3D, const.X3D, const.SLOWFAST, const.IMAGEBIND]:
-            model = LSTMSequenceErrorRecognition(config, hidden_size=256, num_layers=2, dropout=0.3, bidirectional=True)
-    elif config.variant == const.GRU_VARIANT:
-        if config.backbone in [const.OMNIVORE, const.RESNET3D, const.X3D, const.SLOWFAST, const.IMAGEBIND]:
-            model = GRUErrorRecognition(config, hidden_size=256, num_layers=2, dropout=0.3, bidirectional=True)
 
     assert model is not None, f"Model not found for variant: {config.variant} and backbone: {config.backbone}"
     model.to(config.device)
@@ -134,12 +127,8 @@ def train_epoch(model, device, train_loader, optimizer, epoch, criterion):
     num_batches = len(train_loader)
     train_losses = []
 
-    for batch_idx, batch in enumerate(train_loader):
-        if batch is None:
-            continue
-        data, target = batch
+    for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device)
-
 
         assert not torch.isnan(data).any(), "Data contains NaN values"
 
@@ -167,7 +156,7 @@ def train_model_base(train_loader, val_loader, config, test_loader=None):
     criterion = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([2.5], dtype=torch.float32).to(device))
     scheduler = ReduceLROnPlateau(
         optimizer, mode='max',
-        factor=0.1, patience=5,
+        factor=0.1, patience=5, verbose=True,
         threshold=1e-4, threshold_mode="abs", min_lr=1e-7
     )
     # criterion = nn.BCEWithLogitsLoss()
@@ -194,10 +183,7 @@ def train_model_base(train_loader, val_loader, config, test_loader=None):
             num_batches = len(train_loader)
             train_losses = []
 
-            for batch_idx, batch in enumerate(train_loader):
-                if batch is None:
-                    continue
-                data, target = batch
+            for batch_idx, (data, target) in enumerate(train_loader):
                 data, target = data.to(device), target.to(device)
 
                 assert not torch.isnan(data).any(), "Data contains NaN values"
@@ -222,23 +208,15 @@ def train_model_base(train_loader, val_loader, config, test_loader=None):
 
             val_losses, sub_step_metrics, step_metrics = test_er_model(model, val_loader, criterion, device, phase='val')
 
-            if const.AUC in step_metrics:
-                scheduler.step(step_metrics[const.AUC])
+            scheduler.step(step_metrics[const.AUC])
 
             if test_loader is not None:
                 test_losses, test_sub_step_metrics, test_step_metrics = test_er_model(model, test_loader, criterion,
                                                                                       device, phase='test')
 
-            # 🚨 Skip epoch if no valid training batches
-            if len(train_losses) == 0:
-                print(f"[WARNING] No valid training batches in epoch {epoch} — skipping epoch.")
-                continue
-
             avg_train_loss = sum(train_losses) / len(train_losses)
-            # Validation / test may also be empty
-            avg_val_loss = sum(val_losses) / len(val_losses) if len(val_losses) > 0 else float('nan')
-            avg_test_loss = sum(test_losses) / len(test_losses) if len(test_losses) > 0 else float('nan')
-
+            avg_val_loss = sum(val_losses) / len(val_losses)
+            avg_test_loss = sum(test_losses) / len(test_losses)
 
             precision = step_metrics['precision']
             recall = step_metrics['recall']
@@ -287,7 +265,7 @@ def train_step_test_step_dataset_base(config):
     torch.manual_seed(config.seed)
 
     cuda_kwargs = {
-        "num_workers": 0,  # Use 0 workers on Windows to avoid multiprocessing issues
+        "num_workers": 8,
         "pin_memory": False,
     }
     train_kwargs = {**cuda_kwargs, "shuffle": True, "batch_size": config.batch_size}
@@ -356,17 +334,13 @@ def test_er_model(model, test_loader, criterion, device, phase, step_normalizati
     counter = 0
 
     with torch.no_grad():
-        for batch in test_loader:
-            if batch is None:
-                continue
-
-            data, target = batch
+        for data, target in test_loader:
             data, target = data.to(device), target.to(device)
             output = model(data)
             total_samples += data.shape[0]
-
             loss = criterion(output, target)
             test_losses.append(loss.item())
+
             sigmoid_output = output.sigmoid()
             all_outputs.append(sigmoid_output.detach().cpu().numpy().reshape(-1))
             all_targets.append(target.detach().cpu().numpy().reshape(-1))
@@ -377,11 +351,7 @@ def test_er_model(model, test_loader, criterion, device, phase, step_normalizati
             # Set the description of the tqdm instance to show the loss
             test_loader.set_description(f'{phase} Progress: {total_samples}/{num_batches}')
 
-
     # Flatten lists
-    if len(all_outputs) == 0:
-        print(f"[WARNING] No valid samples in {phase} set — skipping evaluation.")
-        return [], {}, {}
     all_outputs = np.concatenate(all_outputs)
     all_targets = np.concatenate(all_targets)
 

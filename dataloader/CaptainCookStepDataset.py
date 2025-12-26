@@ -6,7 +6,6 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 from constants import Constants as const
-from torch.nn.utils.rnn import pad_sequence
 
 
 class CaptainCookStepDataset(Dataset):
@@ -227,18 +226,11 @@ class CaptainCookStepDataset(Dataset):
         step_features = []
         step_has_errors = None
         step_error_category_labels = None
-        T = recording_features.shape[0]
         for step_start_time, step_end_time, has_errors, error_category_labels in step_start_end_list:
-            step_start_time = max(0, step_start_time)
-            step_end_time = min(T, step_end_time)
-            if step_end_time <= step_start_time:
-                continue
             sub_step_features = recording_features[step_start_time:step_end_time, :]
             step_features.append(sub_step_features)
             step_has_errors = has_errors
             step_error_category_labels = error_category_labels
-        if len(step_features) == 0:
-            return None, None
         step_features = np.concatenate(step_features, axis=0)
         step_features = torch.from_numpy(step_features).float()
 
@@ -251,11 +243,8 @@ class CaptainCookStepDataset(Dataset):
         return step_features, step_labels
 
     def _get_video_features(self, recording_id, step_start_end_list):
-        features_path = os.path.join(self._config.segment_features_directory, self._backbone,
-                                         f'{recording_id}.mp4_1s_1s.npz')
-        if not os.path.exists(features_path):
-            return None, None
-
+        features_path = os.path.join(self._config.segment_features_directory, "video", self._backbone,
+                                         f'{recording_id}_360p.mp4_1s_1s.npz')
         features_data = np.load(features_path)
         recording_features = features_data['arr_0']
 
@@ -272,8 +261,6 @@ class CaptainCookStepDataset(Dataset):
         
         assert self._backbone in [const.OMNIVORE, const.SLOWFAST], "Only Omnivore and SlowFast are supported with this codebase"
         step_features, step_labels = self._get_video_features(recording_id, step_start_end_list)
-        if step_features is None or step_features.numel() == 0:
-            return None
 
         assert step_features is not None, f"Features not found for recording_id: {recording_id}"
         assert step_labels is not None, f"Labels not found for recording_id: {recording_id}"
@@ -282,46 +269,11 @@ class CaptainCookStepDataset(Dataset):
 
 
 def collate_fn(batch):
-    # remove skipped samples
-    batch = [b for b in batch if b is not None]
-
-    if len(batch) == 0:
-        return None
-
+    # batch is a list of tuples, and each tuple is (step_features, step_labels)
     step_features, step_labels = zip(*batch)
+
+    # Stack the step_features and step_labels
     step_features = torch.cat(step_features, dim=0)
     step_labels = torch.cat(step_labels, dim=0)
 
     return step_features, step_labels
-
-def step_sequence_collate_fn(batch):
-    """
-    Used ONLY for Step 2(b) LSTM baseline.
-    Keeps step-level temporal sequences.
-    """
-
-    # 1️⃣ Remove skipped samples
-    batch = [b for b in batch if b is not None]
-
-    # 2️⃣ If everything was skipped, return None
-    if len(batch) == 0:
-        return None
-
-    step_features, step_labels = zip(*batch)
-
-    # step_features: list of (T_i, D)
-    step_features = [
-        torch.tensor(f, dtype=torch.float32)
-        for f in step_features
-    ]
-
-    lengths = torch.tensor([f.shape[0] for f in step_features])
-
-    step_features = pad_sequence(
-        step_features,
-        batch_first=True
-    )  # (B, T_max, D)
-
-    step_labels = torch.stack(step_labels)
-
-    return step_features, lengths, step_labels
