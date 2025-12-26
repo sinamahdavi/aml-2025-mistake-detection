@@ -292,6 +292,14 @@ def step_sequence_collate_fn(batch):
     Used ONLY for Step 2(b) LSTM baseline.
     Keeps step-level temporal sequences.
     """
+
+    # 1️⃣ Remove skipped samples
+    batch = [b for b in batch if b is not None]
+
+    # 2️⃣ If everything was skipped, return None
+    if len(batch) == 0:
+        return None
+
     step_features, step_labels = zip(*batch)
 
     # step_features: list of (T_i, D)
@@ -307,7 +315,6 @@ def step_sequence_collate_fn(batch):
         batch_first=True
     )  # (B, T_max, D)
 
-    # take one label per step (all frames have same label)
-    step_labels = torch.stack([lbl[0] for lbl in step_labels])
+    step_labels = torch.stack(step_labels)
 
     return step_features, lengths, step_labels
