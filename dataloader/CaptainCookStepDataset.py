@@ -246,6 +246,9 @@ class CaptainCookStepDataset(Dataset):
     def _get_video_features(self, recording_id, step_start_end_list):
         features_path = os.path.join(self._config.segment_features_directory, "video", self._backbone,
                                          f'{recording_id}_360p.mp4_1s_1s.npz')
+        if not os.path.exists(features_path):
+            return None, None
+
         features_data = np.load(features_path)
         recording_features = features_data['arr_0']
 
@@ -262,6 +265,8 @@ class CaptainCookStepDataset(Dataset):
         
         assert self._backbone in [const.OMNIVORE, const.SLOWFAST], "Only Omnivore and SlowFast are supported with this codebase"
         step_features, step_labels = self._get_video_features(recording_id, step_start_end_list)
+        if step_features is None:
+            raise IndexError
 
         assert step_features is not None, f"Features not found for recording_id: {recording_id}"
         assert step_labels is not None, f"Labels not found for recording_id: {recording_id}"
