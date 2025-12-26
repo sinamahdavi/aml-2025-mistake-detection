@@ -348,13 +348,17 @@ def test_er_model(model, test_loader, criterion, device, phase, step_normalizati
     counter = 0
 
     with torch.no_grad():
-        for data, target in test_loader:
+        for batch in test_loader:
+            if batch is None:
+                continue
+
+            data, target = batch
             data, target = data.to(device), target.to(device)
             output = model(data)
             total_samples += data.shape[0]
+
             loss = criterion(output, target)
             test_losses.append(loss.item())
-
             sigmoid_output = output.sigmoid()
             all_outputs.append(sigmoid_output.detach().cpu().numpy().reshape(-1))
             all_targets.append(target.detach().cpu().numpy().reshape(-1))
@@ -364,6 +368,7 @@ def test_er_model(model, test_loader, criterion, device, phase, step_normalizati
 
             # Set the description of the tqdm instance to show the loss
             test_loader.set_description(f'{phase} Progress: {total_samples}/{num_batches}')
+
 
     # Flatten lists
     all_outputs = np.concatenate(all_outputs)
