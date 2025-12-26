@@ -371,6 +371,9 @@ def test_er_model(model, test_loader, criterion, device, phase, step_normalizati
 
 
     # Flatten lists
+    if len(all_outputs) == 0:
+        print(f"[WARNING] No valid samples in {phase} set — skipping evaluation.")
+        return [], {}, {}
     all_outputs = np.concatenate(all_outputs)
     all_targets = np.concatenate(all_targets)
 
