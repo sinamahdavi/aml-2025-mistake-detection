@@ -224,14 +224,21 @@ def train_model_base(train_loader, val_loader, config, test_loader=None):
 
             if const.AUC in step_metrics:
                 scheduler.step(step_metrics[const.AUC])
-                
+
             if test_loader is not None:
                 test_losses, test_sub_step_metrics, test_step_metrics = test_er_model(model, test_loader, criterion,
                                                                                       device, phase='test')
 
+            # 🚨 Skip epoch if no valid training batches
+            if len(train_losses) == 0:
+                print(f"[WARNING] No valid training batches in epoch {epoch} — skipping epoch.")
+                continue
+
             avg_train_loss = sum(train_losses) / len(train_losses)
-            avg_val_loss = sum(val_losses) / len(val_losses)
-            avg_test_loss = sum(test_losses) / len(test_losses)
+            # Validation / test may also be empty
+            avg_val_loss = sum(val_losses) / len(val_losses) if len(val_losses) > 0 else float('nan')
+            avg_test_loss = sum(test_losses) / len(test_losses) if len(test_losses) > 0 else float('nan')
+
 
             precision = step_metrics['precision']
             recall = step_metrics['recall']
