@@ -227,11 +227,18 @@ class CaptainCookStepDataset(Dataset):
         step_features = []
         step_has_errors = None
         step_error_category_labels = None
+        T = recording_features.shape[0]
         for step_start_time, step_end_time, has_errors, error_category_labels in step_start_end_list:
+            step_start_time = max(0, step_start_time)
+            step_end_time = min(T, step_end_time)
+            if step_end_time <= step_start_time:
+                continue
             sub_step_features = recording_features[step_start_time:step_end_time, :]
             step_features.append(sub_step_features)
             step_has_errors = has_errors
             step_error_category_labels = error_category_labels
+        if len(step_features) == 0:
+            return None, None
         step_features = np.concatenate(step_features, axis=0)
         step_features = torch.from_numpy(step_features).float()
 
@@ -265,7 +272,7 @@ class CaptainCookStepDataset(Dataset):
         
         assert self._backbone in [const.OMNIVORE, const.SLOWFAST], "Only Omnivore and SlowFast are supported with this codebase"
         step_features, step_labels = self._get_video_features(recording_id, step_start_end_list)
-        if step_features is None:
+        if step_features is None or step_features.numel() == 0:
             return None
 
         assert step_features is not None, f"Features not found for recording_id: {recording_id}"
