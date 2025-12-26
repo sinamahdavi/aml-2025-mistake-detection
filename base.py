@@ -222,8 +222,9 @@ def train_model_base(train_loader, val_loader, config, test_loader=None):
 
             val_losses, sub_step_metrics, step_metrics = test_er_model(model, val_loader, criterion, device, phase='val')
 
-            scheduler.step(step_metrics[const.AUC])
-
+            if const.AUC in step_metrics:
+                scheduler.step(step_metrics[const.AUC])
+                
             if test_loader is not None:
                 test_losses, test_sub_step_metrics, test_step_metrics = test_er_model(model, test_loader, criterion,
                                                                                       device, phase='test')
