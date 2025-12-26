@@ -252,7 +252,7 @@ class CaptainCookStepDataset(Dataset):
 
     def _get_video_features(self, recording_id, step_start_end_list):
         features_path = os.path.join(self._config.segment_features_directory, self._backbone,
-                                         f'{recording_id}_360p.mp4_1s_1s.npz')
+                                         f'{recording_id}.mp4_1s_1s.npz')
         if not os.path.exists(features_path):
             return None, None
 
