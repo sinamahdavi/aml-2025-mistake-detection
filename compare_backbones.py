@@ -12,9 +12,26 @@ import torch
 from torch.utils.data import DataLoader
 
 from base import fetch_model, test_er_model
-from core.config import Config
 from constants import Constants as const
 from dataloader.CaptainCookStepDataset import CaptainCookStepDataset, collate_fn, step_sequence_collate_fn
+
+
+class EvalConfig:
+    """Simple config class for evaluation without argument parsing."""
+    def __init__(self, backbone="omnivore", variant="MLP", split="recordings", device="cuda"):
+        self.backbone = backbone
+        self.modality = "video"
+        self.phase = "test"
+        self.segment_length = 1
+        self.segment_features_directory = "data/"
+        self.ckpt_directory = ""
+        self.split = split
+        self.batch_size = 1
+        self.test_batch_size = 1
+        self.seed = 1000
+        self.device = device
+        self.variant = variant
+        self.task_name = const.ERROR_RECOGNITION
 
 
 def find_best_checkpoint(variant, backbone, split="recordings"):
@@ -43,12 +60,7 @@ def evaluate_model_with_backbone(variant, backbone, split="recordings", device="
     print(f"   Checkpoint: {os.path.basename(ckpt_path)}")
     
     # Create config
-    config = Config()
-    config.backbone = backbone
-    config.variant = variant
-    config.split = split
-    config.device = device
-    config.task_name = const.ERROR_RECOGNITION
+    config = EvalConfig(backbone=backbone, variant=variant, split=split, device=device)
     
     # Load model
     model = fetch_model(config)
