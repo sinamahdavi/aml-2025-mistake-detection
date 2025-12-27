@@ -277,12 +277,33 @@ def main():
         error_anno_recording_ids = set([anno['recording_id'] for anno in error_annos])
         
         overlap = test_recording_ids.intersection(error_anno_recording_ids)
-        print(f"\n⚠️  DIAGNOSTIC: Test recordings with error annotations: {len(overlap)}/{len(test_recording_ids)}")
+        print("\n" + "="*80)
+        print("⚠️  ERROR TYPE ANNOTATION DIAGNOSTIC")
+        print("="*80)
+        print(f"Test recordings in split: {len(test_recording_ids)}")
+        print(f"Recordings with error annotations: {len(error_anno_recording_ids)}")
+        print(f"Overlap (test recordings WITH error annotations): {len(overlap)}/{len(test_recording_ids)}")
+        
         if len(overlap) == 0:
-            print(f"   ❌ No test recordings have error type annotations!")
+            print(f"\n❌ PROBLEM: No test recordings have error type annotations!")
             print(f"   This is why all error type counts are zero.")
-            print(f"   Solution: Error type analysis requires recordings with error annotations.")
-            print(f"   The test set may only have binary error labels (error/no-error), not error types.")
+            print(f"   The test set has errors (model detects them), but no error TYPE tags.")
+            print(f"   Solution options:")
+            print(f"   1. Use validation set for error type analysis (if it has annotations)")
+            print(f"   2. Accept that per-error-type metrics aren't available for test set")
+            print(f"   3. Check if error_annotations.json needs to be updated with test recordings")
+        else:
+            # Check if overlapping recordings actually have error type tags
+            steps_with_error_types = 0
+            for anno in error_annos:
+                if anno['recording_id'] in overlap:
+                    for step_anno in anno.get('step_annotations', []):
+                        if 'errors' in step_anno and len(step_anno['errors']) > 0:
+                            steps_with_error_types += 1
+            print(f"Steps with error type tags in overlapping recordings: {steps_with_error_types}")
+            if steps_with_error_types == 0:
+                print(f"   ⚠️  Even though recordings overlap, no steps have error type tags!")
+        print("="*80 + "\n")
     
     test_loader = DataLoader(test_dataset, batch_size=1, collate_fn=collate_fn_with_error_types)
     
