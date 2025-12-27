@@ -269,6 +269,7 @@ def main():
     with open('annotations/annotation_json/error_annotations.json', 'r') as f:
         error_annos = json.load(f)
     
+    
     # Get test recording IDs
     split_file = f"./er_annotations/{config.split}_combined_splits.json"
     if os.path.exists(split_file):
