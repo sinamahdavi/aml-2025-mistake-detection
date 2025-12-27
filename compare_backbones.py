@@ -36,16 +36,23 @@ class EvalConfig:
 
 def find_best_checkpoint(variant, backbone, split="recordings"):
     """Find the best checkpoint for a given variant and backbone."""
-    pattern = f"checkpoints/error_recognition/{variant}/{backbone}/*.pt"
+    # Try multiple patterns to handle different naming conventions
+    patterns = [
+        f"checkpoints/error_recognition/{variant}/{backbone}/*_best.pt",
+        f"checkpoints/error_recognition/{variant}/{backbone}/*best*.pt",
+        f"checkpoints/error_recognition/{variant}/{backbone}/*.pt"
+    ]
     
-    # First try to find *_best.pt
-    best_ckpts = glob.glob(pattern.replace('*.pt', '*_best.pt'))
-    if best_ckpts:
-        return best_ckpts[0]
+    for pattern in patterns:
+        ckpts = glob.glob(pattern)
+        if ckpts:
+            # If multiple, prefer *_best.pt, then sort by modification time
+            best_ckpts = [c for c in ckpts if '_best' in c.lower() or 'best' in c.lower()]
+            if best_ckpts:
+                return sorted(best_ckpts, key=os.path.getmtime)[-1]
+            return sorted(ckpts, key=os.path.getmtime)[-1]
     
-    # Otherwise, get the latest checkpoint
-    all_ckpts = sorted(glob.glob(pattern), key=os.path.getmtime)
-    return all_ckpts[-1] if all_ckpts else None
+    return None
 
 
 def evaluate_model_with_backbone(variant, backbone, split="recordings", device="cuda", threshold=0.4):
@@ -77,7 +84,7 @@ def evaluate_model_with_backbone(variant, backbone, split="recordings", device="
     
     # Evaluate
     criterion = torch.nn.BCEWithLogitsLoss()
-    metrics = test_er_model(
+    test_losses, sub_step_metrics, step_metrics = test_er_model(
         model, test_loader, criterion, device,
         phase="test", step_normalization=True, sub_step_normalization=True, threshold=threshold
     )
@@ -85,7 +92,11 @@ def evaluate_model_with_backbone(variant, backbone, split="recordings", device="
     return {
         'variant': variant,
         'backbone': backbone,
-        **metrics['step_metrics']
+        'accuracy': step_metrics[const.ACCURACY] * 100,
+        'precision': step_metrics[const.PRECISION] * 100,
+        'recall': step_metrics[const.RECALL] * 100,
+        'f1': step_metrics[const.F1] * 100,
+        'auc': step_metrics[const.AUC] * 100
     }
 
 
