@@ -71,6 +71,7 @@ class CaptainCookErrorTypeDataset(Dataset):
     def _build_error_category_labels(self):
         """Build mapping from recording/step to error categories."""
         self._recording_step_error_labels = {}
+        total_steps_with_errors = 0
         for recording_step_dictionary in self._error_annotations:
             recording_id = recording_step_dictionary['recording_id']
             self._recording_step_error_labels[recording_id] = {}
@@ -85,9 +86,14 @@ class CaptainCookErrorTypeDataset(Dataset):
                             error_name = self._category_name_map[error_tag]
                             error_idx = self._error_category_name_label_map[error_name]
                             self._recording_step_error_labels[recording_id][step_id].add(error_idx)
+                            total_steps_with_errors += 1
+        print(f"DEBUG: Built error category labels for {len(self._recording_step_error_labels)} recordings")
+        print(f"DEBUG: Total steps with error types in mapping: {total_steps_with_errors}")
 
     def _prepare_recording_step_dictionary(self, recording_id):
         recording_step_dictionary = {}
+        steps_with_error_types = 0
+        steps_without_error_types = 0
         for step in self._annotations[recording_id]['steps']:
             step_start_time = step['start_time']
             step_end_time = step['end_time']
@@ -96,12 +102,26 @@ class CaptainCookErrorTypeDataset(Dataset):
                 continue
             
             error_types = self._recording_step_error_labels.get(recording_id, {}).get(step_id, set())
+            
+            if len(error_types) > 0:
+                steps_with_error_types += 1
+            elif step['has_errors']:
+                steps_without_error_types += 1
 
             if recording_step_dictionary.get(step_id) is None:
                 recording_step_dictionary[step_id] = []
 
             recording_step_dictionary[step_id].append(
                 (math.floor(step_start_time), math.ceil(step_end_time), step['has_errors'], error_types))
+        
+        # Debug for first few recordings
+        if recording_id in list(self._recording_step_error_labels.keys())[:3]:
+            print(f"DEBUG: Recording {recording_id}: steps with error types={steps_with_error_types}, steps with errors but no types={steps_without_error_types}")
+            if recording_id in self._recording_step_error_labels:
+                print(f"DEBUG:   Error labels available for {len(self._recording_step_error_labels[recording_id])} step_ids")
+                print(f"DEBUG:   Step IDs in annotations: {[s['step_id'] for s in self._annotations[recording_id]['steps']][:5]}")
+                print(f"DEBUG:   Step IDs in error labels: {list(self._recording_step_error_labels[recording_id].keys())[:5]}")
+        
         return recording_step_dictionary
 
     def _init_step_split(self, config, phase):
