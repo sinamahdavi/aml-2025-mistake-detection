@@ -7,6 +7,8 @@ import glob
 import json
 from tabulate import tabulate
 from collections import defaultdict
+import matplotlib.pyplot as plt
+import numpy as np
 
 import torch
 from torch.utils.data import DataLoader
@@ -156,32 +158,6 @@ def compare_backbones(variants=None, backbones=None, split="recordings", device=
     headers = ["Model", "Backbone", "Accuracy", "Precision", "Recall", "F1", "AUC"]
     print(tabulate(table_data, headers=headers, tablefmt="grid", floatfmt=".2f"))
     
-    # Group by variant for easier comparison
-    print("\n" + "=" * 80)
-    print("COMPARISON BY MODEL VARIANT")
-    print("=" * 80)
-    
-    grouped = defaultdict(list)
-    for result in results:
-        grouped[result['variant']].append(result)
-    
-    for variant in variants:
-        variant_results = grouped.get(variant, [])
-        if variant_results:
-            print(f"\n{variant}:")
-            variant_table = []
-            for r in sorted(variant_results, key=lambda x: x['backbone']):
-                variant_table.append([
-                    r['backbone'],
-                    f"{r['accuracy']:.2f}",
-                    f"{r['precision']:.2f}",
-                    f"{r['recall']:.2f}",
-                    f"{r['f1']:.2f}",
-                    f"{r['auc']:.2f}"
-                ])
-            print(tabulate(variant_table, headers=["Backbone", "Accuracy", "Precision", "Recall", "F1", "AUC"],
-                         tablefmt="grid", floatfmt=".2f"))
-    
     # Save to CSV
     if save_csv:
         os.makedirs("results", exist_ok=True)
@@ -198,7 +174,160 @@ def compare_backbones(variants=None, backbones=None, split="recordings", device=
         
         print(f"\n✅ Results saved to: {csv_path}")
     
+    # Create visualizations
+    create_comparison_charts(results, split, save_csv)
+    
     return results
+
+
+def create_comparison_charts(results, split="recordings", save_csv=True):
+    """Create visualization charts for backbone comparison."""
+    if not results:
+        return
+    
+    os.makedirs("results", exist_ok=True)
+    
+    # Prepare data for plotting
+    variants = sorted(set(r['variant'] for r in results))
+    backbones = sorted(set(r['backbone'] for r in results))
+    metrics = ['accuracy', 'precision', 'recall', 'f1', 'auc']
+    
+    # Create a figure with subplots for each metric
+    fig, axes = plt.subplots(2, 3, figsize=(18, 10))
+    axes = axes.flatten()
+    
+    for idx, metric in enumerate(metrics):
+        ax = axes[idx]
+        
+        # Prepare data: [variant][backbone] = value
+        data = {}
+        for variant in variants:
+            data[variant] = {}
+            for backbone in backbones:
+                # Find result for this variant+backbone combination
+                result = next((r for r in results if r['variant'] == variant and r['backbone'] == backbone), None)
+                data[variant][backbone] = result[metric] if result else 0
+        
+        # Create grouped bar chart
+        x = np.arange(len(variants))
+        width = 0.35
+        
+        if len(backbones) == 2:
+            backbone1_values = [data[v][backbones[0]] for v in variants]
+            backbone2_values = [data[v][backbones[1]] for v in variants]
+            
+            bars1 = ax.bar(x - width/2, backbone1_values, width, label=backbones[0].capitalize(), alpha=0.8)
+            bars2 = ax.bar(x + width/2, backbone2_values, width, label=backbones[1].capitalize(), alpha=0.8)
+            
+            # Add value labels on bars
+            for bars in [bars1, bars2]:
+                for bar in bars:
+                    height = bar.get_height()
+                    if height > 0:
+                        ax.text(bar.get_x() + bar.get_width()/2., height,
+                               f'{height:.1f}%',
+                               ha='center', va='bottom', fontsize=9)
+        else:
+            # Handle more than 2 backbones
+            for i, backbone in enumerate(backbones):
+                values = [data[v][backbone] for v in variants]
+                offset = width * (i - len(backbones)/2 + 0.5)
+                bars = ax.bar(x + offset, values, width, label=backbone.capitalize(), alpha=0.8)
+                for bar in bars:
+                    height = bar.get_height()
+                    if height > 0:
+                        ax.text(bar.get_x() + bar.get_width()/2., height,
+                               f'{height:.1f}%',
+                               ha='center', va='bottom', fontsize=8)
+        
+        ax.set_xlabel('Model Variant', fontsize=11)
+        ax.set_ylabel(f'{metric.capitalize()} (%)', fontsize=11)
+        ax.set_title(f'{metric.capitalize()} Comparison', fontsize=12, fontweight='bold')
+        ax.set_xticks(x)
+        ax.set_xticklabels(variants)
+        ax.legend()
+        ax.grid(axis='y', alpha=0.3)
+        max_val = max([r[metric] for r in results] + [50])
+        ax.set_ylim([0, max_val * 1.1])
+    
+    # Remove the last empty subplot
+    fig.delaxes(axes[5])
+    
+    plt.suptitle(f'Backbone Comparison - {split.upper()} Split', fontsize=16, fontweight='bold', y=0.995)
+    plt.tight_layout()
+    
+    # Save figure
+    chart_path = f"results/backbone_comparison_{split}_charts.png"
+    plt.savefig(chart_path, dpi=300, bbox_inches='tight')
+    print(f"📊 Charts saved to: {chart_path}")
+    
+    # Also create a summary comparison chart
+    create_summary_chart(results, split, save_csv)
+    
+    plt.close()
+
+
+def create_summary_chart(results, split="recordings", save_csv=True):
+    """Create a summary chart showing all metrics for all models."""
+    if not results:
+        return
+    
+    variants = sorted(set(r['variant'] for r in results))
+    backbones = sorted(set(r['backbone'] for r in results))
+    metrics = ['accuracy', 'precision', 'recall', 'f1', 'auc']
+    
+    fig, ax = plt.subplots(figsize=(14, 8))
+    
+    # Prepare data: x-axis will be model+backbone combinations
+    x_labels = []
+    metric_data = {metric: [] for metric in metrics}
+    
+    for variant in variants:
+        for backbone in backbones:
+            result = next((r for r in results if r['variant'] == variant and r['backbone'] == backbone), None)
+            if result:
+                x_labels.append(f"{variant}\n{backbone}")
+                for metric in metrics:
+                    metric_data[metric].append(result[metric])
+            else:
+                x_labels.append(f"{variant}\n{backbone}\n(missing)")
+                for metric in metrics:
+                    metric_data[metric].append(0)
+    
+    x = np.arange(len(x_labels))
+    width = 0.15
+    
+    # Create bars for each metric
+    colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7']
+    for i, metric in enumerate(metrics):
+        bars = ax.bar(x + i*width, metric_data[metric], width, label=metric.capitalize(), 
+                     color=colors[i], alpha=0.8)
+        # Add value labels
+        for bar in bars:
+            height = bar.get_height()
+            if height > 0:
+                ax.text(bar.get_x() + bar.get_width()/2., height,
+                       f'{height:.1f}',
+                       ha='center', va='bottom', fontsize=7)
+    
+    ax.set_xlabel('Model + Backbone', fontsize=12)
+    ax.set_ylabel('Score (%)', fontsize=12)
+    ax.set_title(f'Complete Backbone Comparison - {split.upper()} Split', fontsize=14, fontweight='bold')
+    ax.set_xticks(x + width * 2)
+    ax.set_xticklabels(x_labels, fontsize=9)
+    ax.legend(loc='upper left')
+    ax.grid(axis='y', alpha=0.3)
+    max_val = max([r[m] for r in results for m in metrics] + [50])
+    ax.set_ylim([0, max_val * 1.1])
+    
+    plt.tight_layout()
+    
+    # Save figure
+    chart_path = f"results/backbone_comparison_{split}_summary.png"
+    plt.savefig(chart_path, dpi=300, bbox_inches='tight')
+    print(f"📊 Summary chart saved to: {chart_path}")
+    
+    plt.close()
 
 
 def main():
