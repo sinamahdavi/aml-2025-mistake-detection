@@ -54,6 +54,13 @@ class CaptainCookErrorTypeDataset(Dataset):
         }
 
         self._category_name_map = {
+            # Tags with spaces (from JSON)
+            'Technique Error': const.TECHNIQUE_ERROR,
+            'Preparation Error': const.PREPARATION_ERROR,
+            'Temperature Error': const.TEMPERATURE_ERROR,
+            'Measurement Error': const.MEASUREMENT_ERROR,
+            'Timing Error': const.TIMING_ERROR,
+            # Tags without spaces (for compatibility)
             'TechniqueError': const.TECHNIQUE_ERROR,
             'PreparationError': const.PREPARATION_ERROR,
             'TemperatureError': const.TEMPERATURE_ERROR,
