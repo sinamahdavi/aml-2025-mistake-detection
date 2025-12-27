@@ -72,6 +72,9 @@ class CaptainCookErrorTypeDataset(Dataset):
         """Build mapping from recording/step to error categories."""
         self._recording_step_error_labels = {}
         total_steps_with_errors = 0
+        unmatched_tags = set()
+        matched_tags = set()
+        
         for recording_step_dictionary in self._error_annotations:
             recording_id = recording_step_dictionary['recording_id']
             self._recording_step_error_labels[recording_id] = {}
@@ -87,8 +90,15 @@ class CaptainCookErrorTypeDataset(Dataset):
                             error_idx = self._error_category_name_label_map[error_name]
                             self._recording_step_error_labels[recording_id][step_id].add(error_idx)
                             total_steps_with_errors += 1
+                            matched_tags.add(error_tag)
+                        else:
+                            unmatched_tags.add(error_tag)
+        
         print(f"DEBUG: Built error category labels for {len(self._recording_step_error_labels)} recordings")
         print(f"DEBUG: Total steps with error types in mapping: {total_steps_with_errors}")
+        print(f"DEBUG: Matched tags: {matched_tags}")
+        print(f"DEBUG: Unmatched tags (first 10): {list(unmatched_tags)[:10]}")
+        print(f"DEBUG: Expected tags in map: {list(self._category_name_map.keys())}")
 
     def _prepare_recording_step_dictionary(self, recording_id):
         recording_step_dictionary = {}
