@@ -113,6 +113,16 @@ def evaluate_per_error_type(model, test_loader, criterion, device, threshold=0.6
     all_step_targets = np.array(all_step_targets)
     step_error_types = np.array(step_error_types)  # (num_steps, 5)
     
+    # Debug: Check what error types we actually have
+    print(f"\nDEBUG: Total steps evaluated: {len(step_error_types)}")
+    print(f"DEBUG: Steps with any error type: {np.sum(np.sum(step_error_types, axis=1) > 0)}")
+    print(f"DEBUG: Error type counts: {np.sum(step_error_types, axis=0)}")
+    print(f"DEBUG: Steps with errors (target=1): {np.sum(all_step_targets == 1)}")
+    if np.sum(np.sum(step_error_types, axis=1) > 0) == 0 and np.sum(all_step_targets == 1) > 0:
+        print(f"\n⚠️  WARNING: Steps have errors (target=1) but NO error type annotations!")
+        print(f"   This means the test set has binary error labels but no error TYPE tags.")
+        print(f"   Per-error-type analysis requires error type annotations in error_annotations.json.")
+    
     # Global normalization
     prob_range = np.max(all_step_outputs) - np.min(all_step_outputs)
     if prob_range > 0:
