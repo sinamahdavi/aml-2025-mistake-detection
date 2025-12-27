@@ -263,6 +263,27 @@ def main():
     
     # Load test dataset with error types
     test_dataset = CaptainCookErrorTypeDataset(config, const.TEST, config.split)
+    
+    # Diagnostic: Check if test recordings have error annotations
+    import json
+    with open('annotations/annotation_json/error_annotations.json', 'r') as f:
+        error_annos = json.load(f)
+    
+    split_file = f"./er_annotations/{config.split}_combined_splits.json"
+    if os.path.exists(split_file):
+        with open(split_file, 'r') as f:
+            split_data = json.load(f)
+        test_recording_ids = set(split_data.get('test', []))
+        error_anno_recording_ids = set([anno['recording_id'] for anno in error_annos])
+        
+        overlap = test_recording_ids.intersection(error_anno_recording_ids)
+        print(f"\n⚠️  DIAGNOSTIC: Test recordings with error annotations: {len(overlap)}/{len(test_recording_ids)}")
+        if len(overlap) == 0:
+            print(f"   ❌ No test recordings have error type annotations!")
+            print(f"   This is why all error type counts are zero.")
+            print(f"   Solution: Error type analysis requires recordings with error annotations.")
+            print(f"   The test set may only have binary error labels (error/no-error), not error types.")
+    
     test_loader = DataLoader(test_dataset, batch_size=1, collate_fn=collate_fn_with_error_types)
     
     # Evaluate
@@ -281,4 +302,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
