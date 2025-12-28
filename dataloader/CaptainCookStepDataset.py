@@ -376,7 +376,7 @@ class CaptainCookStepDataset(Dataset):
         # Load features using appropriate method
         if self.backbone in [const.OMNIVORE, const.SLOWFAST]:
             recording_features = self._load_legacy_features(recording_id)
-        elif self.backbone in [const.EGOVLP, const.PERCEPTION_ENCODER, const.VIDEOMAE]:
+        elif self.backbone in [const.EGOVLP, const.PERCEPTION_ENCODER]:
             recording_features = self._load_new_backbone_features(recording_id)
         else:
             raise ValueError(
