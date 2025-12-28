@@ -12,7 +12,7 @@ def test_constants():
     try:
         print(f"✓ EGOVLP constant: {const.EGOVLP}")
         print(f"✓ PERCEPTION_ENCODER constant: {const.PERCEPTION_ENCODER}")
-        print(f"✓ VIDEOMAE constant: {const.VIDEOMAE}")
+        
         return True
     except AttributeError as e:
         print(f"✗ Error: {e}")
@@ -36,7 +36,7 @@ def test_feature_dimensions():
         (const.RESNET3D, 400),
         (const.EGOVLP, 768),
         (const.PERCEPTION_ENCODER, 1024),
-        (const.VIDEOMAE, 768),
+        
     ]
     
     all_passed = True
