@@ -24,7 +24,11 @@ def fetch_input_dim(config, decoder=False):
             return 1024
         k = len(config.modality)
         return 1024 * k
-
+    # newbackbones
+    elif config.backbone == const.EGOVLP:
+        return 768  
+    elif config.backbone == const.PERCEPTION_ENCODER:
+        return 1024  
 
 
 class MLP(nn.Module):

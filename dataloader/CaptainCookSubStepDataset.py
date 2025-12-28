@@ -11,7 +11,7 @@ class CaptainCookSubStepDataset(Dataset):
 
     def __init__(self, config, phase, split):
         self._config = config
-        self._backbone = self._config.backbone
+        self.backbone = config.backbone
         self._phase = phase
         self._split = split
 

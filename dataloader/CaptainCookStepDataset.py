@@ -12,7 +12,7 @@ class CaptainCookStepDataset(Dataset):
 
     def __init__(self, config, phase, split):
         self._config = config
-        self._backbone = self._config.backbone
+        self.backbone = config.backbone
         self._phase = phase
         self._split = split
 
@@ -95,8 +95,6 @@ class CaptainCookStepDataset(Dataset):
     def _init_step_split(self, config, phase):
         self._recording_ids_file = "recordings_combined_splits.json"
         print(f"Loading recording ids from {self._recording_ids_file}")
-        # annotations_file_path = os.path.join(os.path.dirname(__file__), f'../er_annotations/{
-        # self._recording_ids_file}')
         annotations_file_path = f"./er_annotations/{self._recording_ids_file}"
         with open(f'{annotations_file_path}', 'r') as file:
             self._recording_ids_json = json.load(file)
@@ -211,9 +209,7 @@ class CaptainCookStepDataset(Dataset):
                 step_labels = torch.zeros(N // 2, 1)
             return step_features, step_labels
         elif self._config.task_name == const.ERROR_CATEGORY_RECOGNITION:
-            # print(f"Error category: {self._config.error_category}")
             error_category_name = self._category_name_map[self._config.error_category]
-            # print(f"Error category name: {error_category_name}")
             task_error_category_label = self._error_category_name_label_map[error_category_name]
             if task_error_category_label in step_error_category_labels:
                 step_labels = torch.ones(N, 1)
@@ -242,15 +238,163 @@ class CaptainCookStepDataset(Dataset):
 
         return step_features, step_labels
 
-    def _get_video_features(self, recording_id, step_start_end_list):
-        features_path = os.path.join(self._config.segment_features_directory, "video", self._backbone,
-                                         f'{recording_id}_360p.mp4_1s_1s.npz')
+    # ============================================================================
+    # UPDATED: Feature loading for different backbones
+    # ============================================================================
+    
+    def _get_feature_path(self, recording_id):
+        """
+        Construct feature file path based on backbone
+        
+        For existing backbones (Omnivore, SlowFast):
+            data/video/backbone/recording_id.npz
+        
+        For new backbones (EgoVLP, etc.):
+            data/backbone/phase/recording_id_backbone.pkl
+        """
+        base_dir = self._config.segment_features_directory
+        
+        # Legacy path for Omnivore and SlowFast
+        if self.backbone in [const.OMNIVORE, const.SLOWFAST]:
+            features_path = os.path.join(
+                base_dir, 
+                "video", 
+                self.backbone,
+                f'{recording_id}_360p.mp4_1s_1s.npz'
+            )
+            return features_path
+        
+        # New path structure for new backbones
+        else:
+            # Structure: data/backbone/phase/recording_id_backbone.pkl
+            features_path = os.path.join(
+                base_dir,
+                self.backbone,
+                self._phase,
+                f'{recording_id}_{self.backbone}.pkl'
+            )
+            return features_path
+    
+    def _load_legacy_features(self, recording_id):
+        """Load features for Omnivore and SlowFast (existing .npz format)"""
+        features_path = self._get_feature_path(recording_id)
+        
+        if not os.path.exists(features_path):
+            raise FileNotFoundError(
+                f"Feature file not found: {features_path}\n"
+                f"Backbone: {self.backbone}"
+            )
+        
         features_data = np.load(features_path)
         recording_features = features_data['arr_0']
-
-        step_features, step_labels = self._build_modality_step_features_labels(recording_features, step_start_end_list)
         features_data.close()
+        
+        return recording_features
+    
+    def _load_new_backbone_features(self, recording_id):
+        """Load features for new backbones (EgoVLP, etc.) from .pkl format"""
+        import pickle
+        
+        features_path = self._get_feature_path(recording_id)
+        
+        if not os.path.exists(features_path):
+            raise FileNotFoundError(
+                f"\nFeature file not found: {features_path}\n"
+                f"Backbone: {self.backbone}\n"
+                f"Phase: {self._phase}\n"
+                f"Recording: {recording_id}\n\n"
+                f"Have you extracted features for this backbone?\n"
+                f"Run: python extract_features.py --backbone {self.backbone} --split {self._phase}"
+            )
+        
+        try:
+            with open(features_path, 'rb') as f:
+                recording_data = pickle.load(f)
+        except Exception as e:
+            raise RuntimeError(f"Error loading {features_path}: {e}")
+        
+        # Extract features from the pickle file
+        # The pickle contains: {'recording_id': ..., 'backbone': ..., 'steps': [...]}
+        # We need to reconstruct the recording_features array indexed by time
+        
+        # Get all steps and their features
+        steps = recording_data.get('steps', [])
+        
+        if len(steps) == 0:
+            raise ValueError(f"No steps found in {features_path}")
+        
+        # Find the maximum end time to determine array size
+        max_time = 0
+        for step in steps:
+            end_time = int(math.ceil(step.get('end_time', 0)))
+            max_time = max(max_time, end_time)
+        
+        # Get feature dimension from first step
+        first_step_features = steps[0]['features']
+        if isinstance(first_step_features, torch.Tensor):
+            feat_dim = first_step_features.shape[-1]
+            first_step_features = first_step_features.numpy()
+        else:
+            feat_dim = first_step_features.shape[-1]
+        
+        # Create time-indexed feature array (same format as legacy)
+        # This assumes 1-second segments
+        recording_features = np.zeros((max_time, feat_dim), dtype=np.float32)
+        
+        for step in steps:
+            start_time = int(math.floor(step.get('start_time', 0)))
+            end_time = int(math.ceil(step.get('end_time', 0)))
+            step_features = step['features']
+            
+            # Convert to numpy if tensor
+            if isinstance(step_features, torch.Tensor):
+                step_features = step_features.numpy()
+            
+            # step_features shape: (num_clips, feat_dim)
+            # We need to fill the time slots [start_time:end_time]
+            num_clips = step_features.shape[0]
+            duration = end_time - start_time
+            
+            if num_clips == duration:
+                # Direct assignment if dimensions match
+                recording_features[start_time:end_time] = step_features
+            elif num_clips < duration:
+                # Repeat last clip if we have fewer clips than time slots
+                recording_features[start_time:start_time+num_clips] = step_features
+                if num_clips < duration:
+                    recording_features[start_time+num_clips:end_time] = step_features[-1]
+            else:
+                # Take first 'duration' clips if we have more clips
+                recording_features[start_time:end_time] = step_features[:duration]
+        
+        return recording_features
+    
+    def _get_video_features(self, recording_id, step_start_end_list):
+        """
+        Load features based on backbone type
+        """
+        # Load features using appropriate method
+        if self.backbone in [const.OMNIVORE, const.SLOWFAST]:
+            recording_features = self._load_legacy_features(recording_id)
+        elif self.backbone in [const.EGOVLP, const.PERCEPTION_ENCODER, const.VIDEOMAE]:
+            recording_features = self._load_new_backbone_features(recording_id)
+        else:
+            raise ValueError(
+                f"Unsupported backbone: {self.backbone}\n"
+                f"Supported: {[const.OMNIVORE, const.SLOWFAST, const.EGOVLP, const.PERCEPTION_ENCODER, const.VIDEOMAE]}"
+            )
+        
+        # Build step features and labels (same for all backbones)
+        step_features, step_labels = self._build_modality_step_features_labels(
+            recording_features, 
+            step_start_end_list
+        )
+        
         return step_features, step_labels
+    
+    # ============================================================================
+    # END OF UPDATES
+    # ============================================================================
 
     def __getitem__(self, idx):
         recording_id = self._step_dict[idx][0]
@@ -259,7 +403,7 @@ class CaptainCookStepDataset(Dataset):
         step_features = None
         step_labels = None
         
-        assert self._backbone in [const.OMNIVORE, const.SLOWFAST], "Only Omnivore and SlowFast are supported with this codebase"
+        # REMOVED OLD ASSERTION - now supports all backbones
         step_features, step_labels = self._get_video_features(recording_id, step_start_end_list)
 
         assert step_features is not None, f"Features not found for recording_id: {recording_id}"

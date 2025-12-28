@@ -47,6 +47,10 @@ class Constants:
     TRANSFORMER_VARIANT = "Transformer"
     MULTIMODAL_VARIANT = "Multimodal"
 
+    #new backbone
+    EGOVLP = "egovlp"
+    PERCEPTION_ENCODER = "perception_encoder"
+
     # ----------------------- WANDB CONSTANTS -----------------------
     WANDB_PROJECT = "error_recognition"
 

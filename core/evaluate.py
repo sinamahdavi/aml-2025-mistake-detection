@@ -66,3 +66,36 @@ if __name__ == "__main__":
     conf.ckpt_directory = args.ckpt
 
     eval_er(conf, args.threshold)
+
+
+def evaluate_by_error_type(model, dataset, error_annotations):
+    """Evaluate performance broken down by error type"""
+    
+    error_types = [
+        'Order Error', 'Preparation Error', 'Measurement Error',
+        'Technique Error', 'Missing Steps', 'Temperature Error', 'Timing Error'
+    ]
+    
+    results = {}
+    
+    for error_type in error_types:
+        # Filter samples with this error type
+        type_indices = [i for i, ann in enumerate(dataset.annotations)
+                       if ann.get('error_type') == error_type]
+        
+        if len(type_indices) == 0:
+            continue
+        
+        # Evaluate on this subset
+        preds, labels = [], []
+        for idx in type_indices:
+            sample = dataset[idx]
+            pred = model(sample['features'])
+            preds.append(pred)
+            labels.append(sample['label'])
+        
+        # Calculate metrics
+        metrics = calculate_metrics(preds, labels)
+        results[error_type] = metrics
+    
+    return results
