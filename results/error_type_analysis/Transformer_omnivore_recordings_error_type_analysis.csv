@@ -1,0 +1,15 @@
+Overall Metrics
+Metric,Value
+accuracy,57.08
+precision,41.70
+recall,48.96
+f1,45.04
+auc,54.39
+
+Per Error Type Metrics
+Error Type,Count,Accuracy,Precision,Recall,F1,AUC
+Technique Error,59,60.53,15.82,52.54,24.31,57.04
+Preparation Error,49,59.50,10.81,40.82,17.09,50.51
+Temperature Error,8,61.42,2.37,50.00,4.52,51.79
+Measurement Error,50,61.88,16.24,64.00,25.91,61.42
+Timing Error,26,60.31,5.71,38.46,9.95,46.68
