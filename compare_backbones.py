@@ -116,7 +116,7 @@ def compare_backbones(variants=None, backbones=None, split="recordings", device=
     if variants is None:
         variants = [const.MLP_VARIANT, const.TRANSFORMER_VARIANT, const.LSTM_VARIANT]
     if backbones is None:
-        backbones = [const.OMNIVORE, const.SLOWFAST]
+        backbones = [const.OMNIVORE, const.SLOWFAST, const.EGOVLP]
     
     threshold = 0.6 if split == "step" else 0.4
     
@@ -336,8 +336,8 @@ def main():
                        choices=[const.RECORDINGS_SPLIT, const.STEP_SPLIT, const.PERSON_SPLIT, const.ENVIRONMENT_SPLIT],
                        help="Data split to use")
     parser.add_argument("--backbones", type=str, nargs="+", 
-                       default=[const.OMNIVORE, const.SLOWFAST],
-                       choices=[const.OMNIVORE, const.SLOWFAST, const.X3D, const.RESNET3D, const.IMAGEBIND],
+                       default=[const.OMNIVORE, const.SLOWFAST, const.EGOVLP],
+                       choices=[const.OMNIVORE, const.SLOWFAST, const.X3D, const.RESNET3D, const.IMAGEBIND, const.EGOVLP],
                        help="Backbones to compare")
     parser.add_argument("--variants", type=str, nargs="+",
                        default=[const.MLP_VARIANT, const.TRANSFORMER_VARIANT, const.LSTM_VARIANT],
