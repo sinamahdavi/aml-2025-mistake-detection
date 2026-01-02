@@ -247,7 +247,7 @@ def save_results_to_csv(overall_metrics, per_error_type_metrics, config, output_
 def main():
     parser = argparse.ArgumentParser(description="Evaluate model performance per error type")
     parser.add_argument("--split", type=str, choices=[const.STEP_SPLIT, const.RECORDINGS_SPLIT], required=True)
-    parser.add_argument("--backbone", type=str, choices=[const.SLOWFAST, const.OMNIVORE], required=True)
+    parser.add_argument("--backbone", type=str, choices=[const.SLOWFAST, const.OMNIVORE, const.EGOVLP], required=True)
     parser.add_argument("--variant", type=str, choices=[const.MLP_VARIANT, const.TRANSFORMER_VARIANT, const.LSTM_VARIANT, const.GRU_VARIANT], required=True)
     parser.add_argument("--ckpt", type=str, required=True, help="Path to checkpoint file")
     parser.add_argument("--threshold", type=float, default=0.5, help="Classification threshold")
