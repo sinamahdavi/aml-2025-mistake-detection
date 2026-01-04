@@ -1,0 +1,356 @@
+{
+  "aggregated_metrics": {
+    "accuracy": {
+      "mean": 75.82565423267822,
+      "std": 9.484013920579637,
+      "min": 53.333333333333336,
+      "max": 93.75
+    },
+    "precision": {
+      "mean": 77.01029294779295,
+      "std": 16.810268467998277,
+      "min": 45.45454545454545,
+      "max": 100.0
+    },
+    "recall": {
+      "mean": 68.14469095719096,
+      "std": 24.45636480675364,
+      "min": 16.666666666666664,
+      "max": 100.0
+    },
+    "f1": {
+      "mean": 67.41444829680124,
+      "std": 15.656898153589873,
+      "min": 28.57142857142857,
+      "max": 95.23809523809523
+    },
+    "auc": {
+      "mean": 77.30774934941603,
+      "std": 9.721232887799824,
+      "min": 57.14285714285714,
+      "max": 98.33333333333334
+    }
+  },
+  "per_fold_results": [
+    {
+      "fold": 1,
+      "test_recipe_id": "1",
+      "train_size": 365,
+      "test_size": 18,
+      "metrics": {
+        "accuracy": 77.77777777777779,
+        "precision": 60.0,
+        "recall": 60.0,
+        "f1": 60.0,
+        "auc": 81.53846153846153
+      }
+    },
+    {
+      "fold": 2,
+      "test_recipe_id": "10",
+      "train_size": 371,
+      "test_size": 12,
+      "metrics": {
+        "accuracy": 75.0,
+        "precision": 57.14285714285714,
+        "recall": 100.0,
+        "f1": 72.72727272727273,
+        "auc": 68.75
+      }
+    },
+    {
+      "fold": 3,
+      "test_recipe_id": "12",
+      "train_size": 366,
+      "test_size": 17,
+      "metrics": {
+        "accuracy": 76.47058823529412,
+        "precision": 76.92307692307693,
+        "recall": 90.9090909090909,
+        "f1": 83.33333333333334,
+        "auc": 66.66666666666666
+      }
+    },
+    {
+      "fold": 4,
+      "test_recipe_id": "13",
+      "train_size": 369,
+      "test_size": 14,
+      "metrics": {
+        "accuracy": 64.28571428571429,
+        "precision": 50.0,
+        "recall": 100.0,
+        "f1": 66.66666666666666,
+        "auc": 80.0
+      }
+    },
+    {
+      "fold": 5,
+      "test_recipe_id": "15",
+      "train_size": 368,
+      "test_size": 15,
+      "metrics": {
+        "accuracy": 73.33333333333333,
+        "precision": 60.0,
+        "recall": 60.0,
+        "f1": 60.0,
+        "auc": 65.99999999999999
+      }
+    },
+    {
+      "fold": 6,
+      "test_recipe_id": "16",
+      "train_size": 367,
+      "test_size": 16,
+      "metrics": {
+        "accuracy": 75.0,
+        "precision": 75.0,
+        "recall": 50.0,
+        "f1": 60.0,
+        "auc": 80.0
+      }
+    },
+    {
+      "fold": 7,
+      "test_recipe_id": "17",
+      "train_size": 363,
+      "test_size": 20,
+      "metrics": {
+        "accuracy": 80.0,
+        "precision": 90.0,
+        "recall": 75.0,
+        "f1": 81.81818181818183,
+        "auc": 77.08333333333333
+      }
+    },
+    {
+      "fold": 8,
+      "test_recipe_id": "18",
+      "train_size": 368,
+      "test_size": 15,
+      "metrics": {
+        "accuracy": 80.0,
+        "precision": 100.0,
+        "recall": 25.0,
+        "f1": 40.0,
+        "auc": 70.45454545454545
+      }
+    },
+    {
+      "fold": 9,
+      "test_recipe_id": "2",
+      "train_size": 367,
+      "test_size": 16,
+      "metrics": {
+        "accuracy": 81.25,
+        "precision": 71.42857142857143,
+        "recall": 83.33333333333334,
+        "f1": 76.92307692307693,
+        "auc": 88.33333333333333
+      }
+    },
+    {
+      "fold": 10,
+      "test_recipe_id": "20",
+      "train_size": 369,
+      "test_size": 14,
+      "metrics": {
+        "accuracy": 85.71428571428571,
+        "precision": 75.0,
+        "recall": 100.0,
+        "f1": 85.71428571428571,
+        "auc": 83.33333333333334
+      }
+    },
+    {
+      "fold": 11,
+      "test_recipe_id": "21",
+      "train_size": 364,
+      "test_size": 19,
+      "metrics": {
+        "accuracy": 73.68421052631578,
+        "precision": 66.66666666666666,
+        "recall": 57.14285714285714,
+        "f1": 61.53846153846154,
+        "auc": 76.19047619047619
+      }
+    },
+    {
+      "fold": 12,
+      "test_recipe_id": "22",
+      "train_size": 366,
+      "test_size": 17,
+      "metrics": {
+        "accuracy": 76.47058823529412,
+        "precision": 100.0,
+        "recall": 33.33333333333333,
+        "f1": 50.0,
+        "auc": 84.84848484848484
+      }
+    },
+    {
+      "fold": 13,
+      "test_recipe_id": "23",
+      "train_size": 367,
+      "test_size": 16,
+      "metrics": {
+        "accuracy": 93.75,
+        "precision": 90.9090909090909,
+        "recall": 100.0,
+        "f1": 95.23809523809523,
+        "auc": 98.33333333333334
+      }
+    },
+    {
+      "fold": 14,
+      "test_recipe_id": "25",
+      "train_size": 368,
+      "test_size": 15,
+      "metrics": {
+        "accuracy": 66.66666666666666,
+        "precision": 75.0,
+        "recall": 42.857142857142854,
+        "f1": 54.54545454545454,
+        "auc": 71.42857142857143
+      }
+    },
+    {
+      "fold": 15,
+      "test_recipe_id": "26",
+      "train_size": 366,
+      "test_size": 17,
+      "metrics": {
+        "accuracy": 76.47058823529412,
+        "precision": 100.0,
+        "recall": 42.857142857142854,
+        "f1": 60.0,
+        "auc": 77.14285714285714
+      }
+    },
+    {
+      "fold": 16,
+      "test_recipe_id": "27",
+      "train_size": 368,
+      "test_size": 15,
+      "metrics": {
+        "accuracy": 86.66666666666667,
+        "precision": 83.33333333333334,
+        "recall": 83.33333333333334,
+        "f1": 83.33333333333334,
+        "auc": 90.74074074074075
+      }
+    },
+    {
+      "fold": 17,
+      "test_recipe_id": "28",
+      "train_size": 365,
+      "test_size": 18,
+      "metrics": {
+        "accuracy": 83.33333333333334,
+        "precision": 83.33333333333334,
+        "recall": 71.42857142857143,
+        "f1": 76.92307692307693,
+        "auc": 88.31168831168831
+      }
+    },
+    {
+      "fold": 18,
+      "test_recipe_id": "29",
+      "train_size": 365,
+      "test_size": 18,
+      "metrics": {
+        "accuracy": 72.22222222222221,
+        "precision": 100.0,
+        "recall": 16.666666666666664,
+        "f1": 28.57142857142857,
+        "auc": 79.16666666666667
+      }
+    },
+    {
+      "fold": 19,
+      "test_recipe_id": "3",
+      "train_size": 370,
+      "test_size": 13,
+      "metrics": {
+        "accuracy": 84.61538461538461,
+        "precision": 80.0,
+        "recall": 80.0,
+        "f1": 80.0,
+        "auc": 80.0
+      }
+    },
+    {
+      "fold": 20,
+      "test_recipe_id": "4",
+      "train_size": 366,
+      "test_size": 17,
+      "metrics": {
+        "accuracy": 88.23529411764706,
+        "precision": 90.0,
+        "recall": 90.0,
+        "f1": 90.0,
+        "auc": 87.14285714285714
+      }
+    },
+    {
+      "fold": 21,
+      "test_recipe_id": "5",
+      "train_size": 368,
+      "test_size": 15,
+      "metrics": {
+        "accuracy": 53.333333333333336,
+        "precision": 55.55555555555556,
+        "recall": 62.5,
+        "f1": 58.82352941176471,
+        "auc": 57.14285714285714
+      }
+    },
+    {
+      "fold": 22,
+      "test_recipe_id": "7",
+      "train_size": 367,
+      "test_size": 16,
+      "metrics": {
+        "accuracy": 75.0,
+        "precision": 62.5,
+        "recall": 83.33333333333334,
+        "f1": 71.42857142857143,
+        "auc": 75.0
+      }
+    },
+    {
+      "fold": 23,
+      "test_recipe_id": "8",
+      "train_size": 367,
+      "test_size": 16,
+      "metrics": {
+        "accuracy": 56.25,
+        "precision": 45.45454545454545,
+        "recall": 83.33333333333334,
+        "f1": 58.82352941176471,
+        "auc": 63.33333333333333
+      }
+    },
+    {
+      "fold": 24,
+      "test_recipe_id": "9",
+      "train_size": 369,
+      "test_size": 14,
+      "metrics": {
+        "accuracy": 64.28571428571429,
+        "precision": 100.0,
+        "recall": 44.44444444444444,
+        "f1": 61.53846153846154,
+        "auc": 64.44444444444444
+      }
+    }
+  ],
+  "config": {
+    "num_epochs": 100,
+    "batch_size": 64,
+    "num_folds": 24,
+    "model": "GCNClassifier",
+    "input_dim": 512,
+    "hidden_channels": 64
+  }
+}
