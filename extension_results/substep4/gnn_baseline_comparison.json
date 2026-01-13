@@ -1,0 +1,93 @@
+{
+  "gnn_results": {
+    "task": "Recipe-level classification (correct/incorrect)",
+    "method": "Graph Neural Network",
+    "evaluation": "Leave-one-recipe-out cross-validation",
+    "metrics": {
+      "accuracy": {
+        "mean": 75.82565423267822,
+        "std": 9.484013920579637,
+        "min": 53.333333333333336,
+        "max": 93.75
+      },
+      "precision": {
+        "mean": 77.01029294779295,
+        "std": 16.810268467998277,
+        "min": 45.45454545454545,
+        "max": 100.0
+      },
+      "recall": {
+        "mean": 68.14469095719096,
+        "std": 24.45636480675364,
+        "min": 16.666666666666664,
+        "max": 100.0
+      },
+      "f1": {
+        "mean": 67.41444829680124,
+        "std": 15.656898153589873,
+        "min": 28.57142857142857,
+        "max": 95.23809523809523
+      },
+      "auc": {
+        "mean": 77.30774934941603,
+        "std": 9.721232887799824,
+        "min": 57.14285714285714,
+        "max": 98.33333333333334
+      }
+    }
+  },
+  "baseline_results": {
+    "task": "Step-level error detection",
+    "methods": [
+      {
+        "Variant": "Transformer (Recipe-Level)",
+        "Task": "Recipe-level classification",
+        "Method": "Transformer on step sequences",
+        "Evaluation": "Leave-one-out cross-validation",
+        "Step Accuracy": 60.339947780678855,
+        "Step Precision": 22.72415143603133,
+        "Step Recall": 22.722584856396868,
+        "Step F1": 22.723237597911226,
+        "Step AUC": 62.25,
+        "metrics": {
+          "accuracy": {
+            "mean": 60.339947780678855,
+            "std": 48.8556853029435,
+            "min": 0.0,
+            "max": 100.0
+          },
+          "precision": {
+            "mean": 22.72415143603133,
+            "std": 41.82814778034341,
+            "min": 0.0,
+            "max": 100.0
+          },
+          "recall": {
+            "mean": 22.722584856396868,
+            "std": 41.82779847076829,
+            "min": 0.0,
+            "max": 100.0
+          },
+          "f1": {
+            "mean": 22.723237597911226,
+            "std": 41.82784134029604,
+            "min": 0.0,
+            "max": 100.0
+          },
+          "auc": {
+            "mean": 62.25,
+            "std": 5.150000000000006,
+            "min": 57.099999999999994,
+            "max": 67.4
+          }
+        }
+      }
+    ],
+    "note": "Results from Substep 2 baseline comparison"
+  },
+  "comparison_notes": {
+    "task_difference": "GNN predicts recipe-level correctness, baselines predict step-level errors",
+    "input_difference": "GNN uses task-graph structure, baselines use video features",
+    "evaluation_difference": "GNN uses leave-one-out CV, baselines use standard split"
+  }
+}

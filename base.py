@@ -1,5 +1,6 @@
 import csv
 import os
+import warnings
 
 from torch.optim.lr_scheduler import StepLR, ReduceLROnPlateau
 
@@ -44,12 +45,22 @@ def fetch_model_name_ecr(config):
 def fetch_model(config):
     model = None
     if config.variant == const.MLP_VARIANT:
-        if config.backbone in [const.OMNIVORE, const.RESNET3D, const.X3D, const.SLOWFAST, const.IMAGEBIND]:
+        if config.backbone in [const.OMNIVORE, const.RESNET3D, const.X3D, const.SLOWFAST, const.IMAGEBIND, const.EGOVLP]:
             input_dim = fetch_input_dim(config)
             model = MLP(input_dim, 512, 1)
     elif config.variant == const.TRANSFORMER_VARIANT:
-        if config.backbone in [const.OMNIVORE, const.RESNET3D, const.X3D, const.SLOWFAST, const.IMAGEBIND]:
+        if config.backbone in [const.OMNIVORE, const.RESNET3D, const.X3D, const.SLOWFAST, const.IMAGEBIND, const.EGOVLP]:
             model = ErFormer(config)
+    elif config.variant == const.LSTM_VARIANT:
+        if config.backbone in [const.OMNIVORE, const.RESNET3D, const.X3D, const.SLOWFAST, const.IMAGEBIND, const.EGOVLP]:
+            from core.models.lstm_model import LSTMErrorRecognition
+            model = LSTMErrorRecognition(config, hidden_size=256, num_layers=2, 
+                                         dropout=0.3, bidirectional=True)
+    elif config.variant == const.GRU_VARIANT:
+        if config.backbone in [const.OMNIVORE, const.RESNET3D, const.X3D, const.SLOWFAST, const.IMAGEBIND, const.EGOVLP]:
+            from core.models.lstm_model import GRUErrorRecognition
+            model = GRUErrorRecognition(config, hidden_size=256, num_layers=2,
+                                        dropout=0.3, bidirectional=True)
 
     assert model is not None, f"Model not found for variant: {config.variant} and backbone: {config.backbone}"
     model.to(config.device)
@@ -156,7 +167,7 @@ def train_model_base(train_loader, val_loader, config, test_loader=None):
     criterion = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([2.5], dtype=torch.float32).to(device))
     scheduler = ReduceLROnPlateau(
         optimizer, mode='max',
-        factor=0.1, patience=5, verbose=True,
+        factor=0.1, patience=5,
         threshold=1e-4, threshold_mode="abs", min_lr=1e-7
     )
     # criterion = nn.BCEWithLogitsLoss()
@@ -364,11 +375,23 @@ def test_er_model(model, test_loader, criterion, device, phase, step_normalizati
 
     # Calculate metrics at the sub-step level
     pred_sub_step_labels = (all_sub_step_outputs > 0.5).astype(int)
-    sub_step_precision = precision_score(all_sub_step_targets, pred_sub_step_labels)
-    sub_step_recall = recall_score(all_sub_step_targets, pred_sub_step_labels)
-    sub_step_f1 = f1_score(all_sub_step_targets, pred_sub_step_labels)
+    sub_step_precision = precision_score(all_sub_step_targets, pred_sub_step_labels, zero_division=0)
+    sub_step_recall = recall_score(all_sub_step_targets, pred_sub_step_labels, zero_division=0)
+    sub_step_f1 = f1_score(all_sub_step_targets, pred_sub_step_labels, zero_division=0)
     sub_step_accuracy = accuracy_score(all_sub_step_targets, pred_sub_step_labels)
-    sub_step_auc = roc_auc_score(all_sub_step_targets, all_sub_step_outputs)
+    # Check if we have at least 2 classes for AUC calculation
+    unique_classes = np.unique(all_sub_step_targets)
+    if len(unique_classes) < 2:
+        sub_step_auc = 0.0
+    else:
+        try:
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=UserWarning)
+                sub_step_auc = roc_auc_score(all_sub_step_targets, all_sub_step_outputs)
+            if np.isnan(sub_step_auc) or not np.isfinite(sub_step_auc):
+                sub_step_auc = 0.0
+        except (ValueError, RuntimeError):
+            sub_step_auc = 0.0
     sub_step_pr_auc = binary_auprc(torch.tensor(pred_sub_step_labels), torch.tensor(all_sub_step_targets))
 
     sub_step_metrics = {
@@ -404,10 +427,11 @@ def test_er_model(model, test_loader, criterion, device, phase, step_normalizati
         #     step_output = neg_output
         step_output = np.array(step_output)
         # # Scale the output to [0, 1]
-        if start - end > 1:
+        if end - start > 1:
             if sub_step_normalization:
                 prob_range = np.max(step_output) - np.min(step_output)
-                step_output = (step_output - np.min(step_output)) / prob_range
+                if prob_range > 0:
+                    step_output = (step_output - np.min(step_output)) / prob_range
 
         mean_step_output = np.mean(step_output)
         step_target = 1 if np.mean(step_target) > 0.95 else 0
@@ -420,18 +444,31 @@ def test_er_model(model, test_loader, criterion, device, phase, step_normalizati
     # # Scale the output to [0, 1]
     if step_normalization:
         prob_range = np.max(all_step_outputs) - np.min(all_step_outputs)
-        all_step_outputs = (all_step_outputs - np.min(all_step_outputs)) / prob_range
+        if prob_range > 0:
+            all_step_outputs = (all_step_outputs - np.min(all_step_outputs)) / prob_range
 
     all_step_targets = np.array(all_step_targets)
 
     # Calculate metrics at the step level
     pred_step_labels = (all_step_outputs > threshold).astype(int)
     precision = precision_score(all_step_targets, pred_step_labels, zero_division=0)
-    recall = recall_score(all_step_targets, pred_step_labels)
-    f1 = f1_score(all_step_targets, pred_step_labels)
+    recall = recall_score(all_step_targets, pred_step_labels, zero_division=0)
+    f1 = f1_score(all_step_targets, pred_step_labels, zero_division=0)
     accuracy = accuracy_score(all_step_targets, pred_step_labels)
 
-    auc = roc_auc_score(all_step_targets, all_step_outputs)
+    # Check if we have at least 2 classes for AUC calculation
+    unique_classes = np.unique(all_step_targets)
+    if len(unique_classes) < 2:
+        auc = 0.0
+    else:
+        try:
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=UserWarning)
+                auc = roc_auc_score(all_step_targets, all_step_outputs)
+            if np.isnan(auc) or not np.isfinite(auc):
+                auc = 0.0
+        except (ValueError, RuntimeError):
+            auc = 0.0
     pr_auc = binary_auprc(torch.tensor(pred_step_labels), torch.tensor(all_step_targets))
 
     step_metrics = {
